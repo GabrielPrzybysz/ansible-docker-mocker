@@ -9,13 +9,13 @@ def build_docker_image(image_name, dockerfile_path):
 def instantiate_docker_containers(hosts_count, hosts_file_path, group_name, image_name):
     # Instantiate Docker containers
     for i in range(1, hosts_count + 1):
-        container_name = f"host{i}"
+        container_name = f"{image_name}_{i}"
         subprocess.run(["docker", "run", "-d", "--name", container_name, image_name])
 
     # Gather Docker container info
     container_info = []
     for i in range(1, hosts_count + 1):
-        container_name = f"host{i}"
+        container_name = f"{image_name}_{i}"
         output = subprocess.run(["docker", "inspect", container_name], capture_output=True, text=True)
         container_info.append(yaml.safe_load(output.stdout))
 
@@ -37,11 +37,11 @@ def instantiate_docker_containers(hosts_count, hosts_file_path, group_name, imag
         return
 
     # Add the group and IP addresses to the data
-    group_data = {}
+    ips = []
     for info in container_info:
         ip_address = info[0]['NetworkSettings']['IPAddress']
-        group_data[ip_address] = None  # You can add more data associated with each IP address if needed
-    existing_data[group_name] = group_data
+        ips.append(ip_address) 
+    existing_data[group_name] = ips
 
     # Write updated data back to YAML file
     with open(hosts_file_path, 'w') as f:
