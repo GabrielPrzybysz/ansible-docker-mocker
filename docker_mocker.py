@@ -1,28 +1,22 @@
 #!/usr/bin/python
-
-import logging
 from ansible.module_utils.basic import AnsibleModule
 import subprocess
 import yaml
 
-def instantiate_docker_containers(hosts_count, hosts_file_path, group_name, logs_folder):
+def build_docker_image(image_name, dockerfile_path):
+    subprocess.run(["docker", "build", "-t", image_name, dockerfile_path])
 
-    # Configure logging
-    logging.basicConfig(filename=logs_folder + "/docker_mocker.log", level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
+def instantiate_docker_containers(hosts_count, hosts_file_path, group_name, image_name):
     # Instantiate Docker containers
     for i in range(1, hosts_count + 1):
-        container_name = f"ubuntu_container{i}"
-        logging.info(f"Creating container: {container_name}")
-        subprocess.run(["docker", "run", "-d", "--name", container_name, "ubuntu:latest", "tail", "-f", "/dev/null"])
+        container_name = f"host{i}"
+        subprocess.run(["docker", "run", "-d", "--name", container_name, image_name])
 
     # Gather Docker container info
     container_info = []
     for i in range(1, hosts_count + 1):
-        container_name = f"ubuntu_container{i}"
-        logging.info(f"Inspecting container: {container_name}")
+        container_name = f"host{i}"
         output = subprocess.run(["docker", "inspect", container_name], capture_output=True, text=True)
-        logging.info(output)
         container_info.append(yaml.safe_load(output.stdout))
 
     # Write IP addresses to the inventory file
@@ -47,8 +41,6 @@ def instantiate_docker_containers(hosts_count, hosts_file_path, group_name, logs
     for info in container_info:
         ip_address = info[0]['NetworkSettings']['IPAddress']
         group_data[ip_address] = None  # You can add more data associated with each IP address if needed
-        logging.info(f"Added IP address {ip_address} to group {group_name} in inventory file")
-
     existing_data[group_name] = group_data
 
     # Write updated data back to YAML file
@@ -61,20 +53,22 @@ def main():
             hosts_count=dict(type='int', required=True),
             hosts_file_path=dict(type='str', required=True),
             group_name=dict(type='str', required=True),
-            logs_folder=dict(type='str', required=True)
+            image_name=dict(type='str', required=True),
+            dockerfile_path=dict(type='str', required=True)
         )
     )
 
     hosts_count = module.params['hosts_count']
     hosts_file_path = module.params['hosts_file_path']
     group_name = module.params['group_name']
-    logs_folder = module.params['logs_folder']
+    image_name = module.params['image_name']
+    dockerfile_path = module.params['dockerfile_path']
 
     try:
-        instantiate_docker_containers(hosts_count, hosts_file_path, group_name, logs_folder)
+        build_docker_image(image_name, dockerfile_path)
+        instantiate_docker_containers(hosts_count, hosts_file_path, group_name, image_name)
         module.exit_json(changed=True, msg="Docker containers instantiated and added to inventory file")
     except Exception as e:
-        logging.error(f"Failed to instantiate Docker containers: {str(e)}")
         module.fail_json(msg=f"Failed to instantiate Docker containers: {str(e)}")
 
 if __name__ == '__main__':
