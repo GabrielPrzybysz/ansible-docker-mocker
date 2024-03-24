@@ -1,0 +1,11 @@
+- name: Instantiate Docker containers and add to inventory
+  hosts: localhost
+  tasks:
+    - name: Instantiate Docker containers and add to inventory
+      docker_mocker:
+        hosts_count: 10
+        hosts_file_path: ../inventory.yml
+        group_name: docker_containers
+        image_name: ubuntu
+        dockerfile_path: ../docker_images/ubuntu
+      become: yes
