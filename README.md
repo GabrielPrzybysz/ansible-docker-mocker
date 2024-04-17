@@ -1,3 +1,4 @@
+![_4e42ea76-ace3-431b-ac96-56529fda93e5](https://github.com/GabrielPrzybysz/ansible-docker-mocker/assets/45472156/9467ce97-4f4e-41a4-bbad-aebee47d5957)
 
 # Automating Docker Image Building, Container Provisioning, and Ansible Inventory Update
 
