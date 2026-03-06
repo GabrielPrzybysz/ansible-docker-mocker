@@ -1,9 +1,26 @@
-![_4e42ea76-ace3-431b-ac96-56529fda93e5](https://github.com/GabrielPrzybysz/ansible-docker-mocker/assets/45472156/9467ce97-4f4e-41a4-bbad-aebee47d5957)
+# ansible-docker-mocker
 
-# Automating Docker Image Building, Container Provisioning, and Ansible Inventory Update
+An Ansible module that automates Docker image building, container provisioning, and Ansible inventory updates with the IP addresses of the running containers.
 
-This Python script provides a robust solution for automating Docker image building, container instantiation, and Ansible inventory update with container IP addresses.
-```yml
+## Overview
+
+`docker_mocker` is a custom Ansible module written in Python. It builds a Docker image from a specified Dockerfile, spins up a given number of containers from that image, inspects each container to retrieve its IP address, and appends the group and IPs to an existing Ansible inventory YAML file.
+
+## Parameters
+
+| Parameter         | Type   | Required | Description                                                      |
+|-------------------|--------|----------|------------------------------------------------------------------|
+| `hosts_count`     | int    | yes      | Number of Docker containers to create.                           |
+| `hosts_file_path` | str    | yes      | Path to the Ansible inventory YAML file to update.               |
+| `group_name`      | str    | yes      | Inventory group name under which container IPs will be listed.   |
+| `image_name`      | str    | yes      | Name to assign to the built Docker image.                        |
+| `dockerfile_path` | str    | yes      | Path to the directory containing the Dockerfile to build.        |
+
+## Usage
+
+Copy `docker_mocker.py` to your Ansible `library/` directory and reference the module in a playbook:
+
+```yaml
 - name: Instantiate Docker containers and add to inventory
   hosts: localhost
   tasks:
@@ -17,24 +34,29 @@ This Python script provides a robust solution for automating Docker image buildi
       become: yes
 ```
 
+## How It Works
+
+1. **Build** – Runs `docker build -t <image_name> <dockerfile_path>` to create the image.
+2. **Run** – Starts `hosts_count` detached containers named `<image_name>_1`, `<image_name>_2`, …
+3. **Inspect** – Runs `docker inspect` on each container and extracts its `NetworkSettings.IPAddress`.
+4. **Update inventory** – Reads the existing inventory YAML file, adds a new group entry with the collected IPs, and writes it back. If the group already exists, the update is skipped.
+
 ## Features
 
-- **Effortless Docker Image Building**: Simply specify the Dockerfile path and the desired image name, and the script will handle the rest, automating the Docker image building process.
-
-- **Seamless Container Provisioning**: Define the number of containers you need, and the script will effortlessly instantiate them based on the provided image, streamlining container provisioning.
-
-- **Ansible Inventory Automation**: The script automatically updates the Ansible inventory file with the IP addresses of the provisioned containers, ensuring seamless integration with Ansible for configuration management.
-
-## Benefits
-
-- **Time Saving**: Automates tedious manual tasks, such as building Docker images, provisioning containers, and updating Ansible inventory, saving valuable time and effort.
-
-- **Consistency**: Ensures consistency across environments by automating the deployment process, reducing the risk of human error in manual deployments.
+- **Automated image builds** – No manual `docker build` step required; just point to the Dockerfile.
+- **Bulk container provisioning** – Spin up any number of containers in a single task.
+- **Inventory integration** – Container IPs are written directly into the Ansible inventory, making the containers immediately available for subsequent plays.
+- **Idempotent group handling** – If the specified inventory group already exists, the module skips the update to avoid duplication.
 
 ## Use Cases
 
-- **Automated Testing Environments**: Quickly provision disposable test environments with Docker containers for automated testing, enabling faster feedback loops and improved software quality. Integrate with testing frameworks such as Selenium or pytest to automate testing workflows.
+- **Automated testing** – Quickly provision short-lived test environments and tear them down after a test run.
+- **Load testing** – Scale out containers to simulate concurrent users and measure application performance under stress.
+- **Integration testing** – Deploy multiple interconnected services as containers and validate that they work together before a production release.
 
-- **Load Testing**: Scale up the number of containers to simulate heavy loads on your application and measure its performance under stress. Automate the provisioning and teardown of containers to streamline the load testing process.
+## Requirements
 
-- **Integration Testing**: Automate the deployment of multiple interconnected services in Docker containers to facilitate integration testing. Ensure that different components of your application work seamlessly together in a controlled environment.
+- Python 3
+- `ansible` (module utilities)
+- `docker` CLI available on the host
+- `PyYAML`
